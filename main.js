@@ -11,7 +11,7 @@ const CONFIG = {
         test: 0, // PUESTO EN 0 PARA PRUEBAS RÁPIDAS, CAMBIAR A 3000
         select: 0, // PUESTO EN 0 PARA PRUEBAS RÁPIDAS, CAMBIAR A 6000
     },
-    imagePath: '/static/images/' 
+    imagePath: 'images/' 
 };
 
 const RULE_TYPES = {
