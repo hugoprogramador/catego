@@ -2,8 +2,8 @@
 const fetch = require('node-fetch'); // Necesitarás instalar node-fetch si Netlify no lo incluye por defecto
                                      // o usar el 'https'/'http' módulo nativo de Node.js
 
-// ¡¡REEMPLAZA ESTO CON LA URL DE TU SCRIPT DE GOOGLE APPS DESPLEGADO!!
-const GOOGLE_SCRIPT_URL = 'URL_DE_TU_SCRIPT_DE_GOOGLE_APPS_AQUI';
+// SCRIPT DE GOOGLE APPS DESPLEGADO
+const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzdwPqB-4sKvwOy-C29MR4n-Ip-Jc-Y5ZIO5Xg0iZ-CV6SqQ7-_JRqC2kpevRH_z_lM/exec';
 
 exports.handler = async function(event, context) {
     // Permitir solicitudes OPTIONS para CORS preflight
