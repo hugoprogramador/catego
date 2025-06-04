@@ -111,7 +111,7 @@ let demographicsFormEl, startTaskButtonEl, finalQuestionsFormEl;
 let SCREENS_OBJ;
 
 // --- Guardado de datos -------------------------------------------------------------------------------------------
-const BACKEND_SUBMIT_URL = '/.netlify/functions/submit_data'; // Ruta estándar para Netlify Functions
+const BACKEND_SUBMIT_URL = 'https://gleaming-sopapillas-db2bdc.netlify.app/.netlify/functions/submit_data'; // Ruta estándar para Netlify Functions
 
 // --- FUNCIONES ---------------------------------------------------------------------------------------------------
 
