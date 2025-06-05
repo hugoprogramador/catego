@@ -12,7 +12,6 @@ const CONFIG = {
         select: 0, // PUESTO EN 0 PARA PRUEBAS RÁPIDAS, CAMBIAR A 6000
     },
     imagePath: 'images/' 
-    selectIncorrectPenalty: 5000
 };
 
 const RULE_TYPES = {
@@ -371,20 +370,19 @@ function updateTrialCounter() {
     trialCounterDisplayEl.textContent = `${totalTrialsCompleted}/${CONFIG.numTrialsPerRule * CONFIG.totalRuleTypes}`;
 }
 
-function setActionButtonsDisabled(disabled, forSelectionIncorrect = false) {
-    if (testButtonEl) {
-        // El botón de Test solo se deshabilita si NO es una penalización por selección incorrecta
-        // O si 'disabled' es true por otra razón (como pasar a un nuevo ensayo).
-        testButtonEl.disabled = disabled && !forSelectionIncorrect;
-    }
+function setActionButtonsDisabled(disabledState) {
 
+    if (testButtonEl) {
+        testButtonEl.disabled = disabledState === true; // Deshabilitar Test solo si disabledState es true explícito
+    }
     if (selectButtonEl && confidenceSliderEl) {
-        selectButtonEl.disabled = disabled; // Siempre deshabilita 'Select' cuando 'disabled' es true
-        if (!disabled) { // Si estamos habilitando
+        if (disabledState === true) {
+            selectButtonEl.disabled = true;
+        } else { // Si es false (habilitar)
             selectButtonEl.disabled = parseInt(confidenceSliderEl.value) === 0;
         }
-    } else if (selectButtonEl) {
-        selectButtonEl.disabled = disabled;
+    } else if (selectButtonEl) { // Fallback si confidenceSliderEl no existe
+        selectButtonEl.disabled = disabledState === true;
     }
 }
 
@@ -592,7 +590,6 @@ window.onload = () => {
         }
         
         testButtonEl.addEventListener('click', () => { 
-            // No deshabilitar testButtonEl aquí según nuevos requisitos
             if (selectedItemsIndices.size === 0) { showFeedback("Debes seleccionar al menos un ítem para probar.", 'incorrect'); return; }
             const actionTime = getTimestamp();
             showFeedback(`Probando...`, ''); 
@@ -622,7 +619,6 @@ window.onload = () => {
             const confidence = parseInt(confidenceSliderEl.value);
             if (confidence === 0) { 
                 showFeedback("Debes indicar tu nivel de confianza (1-5).", 'incorrect'); 
-                // No deshabilitar permanentemente aquí, solo no procesar
                 return; 
             }
             if (!currentRule || typeof currentRule.getRelevantStimuli !== 'function') {
@@ -635,15 +631,10 @@ window.onload = () => {
                 showFeedback("Debes seleccionar los ítems que crees que cumplen la regla.", 'incorrect'); 
                 return; 
             }
-
-            // Deshabilitar selectButtonEl INMEDIATAMENTE después de las validaciones iniciales
-            selectButtonEl.disabled = true; 
-            // testButtonEl permanece activo
-
+            
             const actionTime = getTimestamp();
             showFeedback(`Verificando...`, '');
-
-            // No hay setTimeout real si CONFIG.penalties.select es 0
+            
             const currentSelectedStimuliObjects = Array.from(selectedItemsIndices).map(i => currentGridStimuli[i]);
             const currentSelectedStimuliIds = new Set(currentSelectedStimuliObjects.map(s => s.id));
             const targetStimuliIds = new Set(targetStimuliForSelect.map(s => s.id));
@@ -653,55 +644,35 @@ window.onload = () => {
                 currentTrialData.actions.push({ actionType: 'final_select', time: actionTime, selection: currentSelectedStimuliObjects.map(s => s.id), selectionFeatures: currentSelectedStimuliObjects.map(s => ({ shape: s.shape, color: s.color, fill: s.fill })), isCorrectFull: isSelectionCorrect, confidence: confidence, penaltyApplied: CONFIG.penalties.select });
             }
             updateHistory(currentSelectedStimuliObjects, isSelectionCorrect, 'select');
-            
+
+            // Solo deshabilitar si la selección va a ser CORRECTA (para prevenir doble avance)
+            // Si es incorrecta, los botones permanecerán activos.
             if (isSelectionCorrect) {
+                setActionButtonsDisabled(true); // Deshabilitar AMBOS botones AHORA
                 showFeedback("¡Correcto! Pasando al siguiente ensayo.", 'correct');
                 if (currentTrialData) {
                     currentTrialData.correctlySolved = true; 
                     currentTrialData.endTime = getTimestamp();
                 }
                 participantData.trials.push({...currentTrialData});
-                
-                // Deshabilitar AMBOS botones mientras se pasa al siguiente ensayo
-                setActionButtonsDisabled(true, false); // El segundo false indica que no es por selección incorrecta
-
                 setTimeout(() => { 
-                    startNewTrial(); 
-                    // setActionButtonsDisabled(false) se llama al final de startNewTrial
-                }, 1500); 
+                    startNewTrial(); // startNewTrial rehabilitará los botones
+                }, 1500); // Delay para leer feedback
             } else {
                 showFeedback("No has seleccionado los elementos específicos de esta categoría.", 'incorrect');
-                // Penalización para selección incorrecta: deshabilitar selectButtonEl por 5 segundos
-                // testButtonEl permanece activo
-                // selectButtonEl ya está deshabilitado, así que solo necesitamos el timeout para rehabilitarlo
-                setTimeout(() => {
-                    // Solo rehabilitar si la confianza sigue siendo válida y no estamos en medio de otra acción.
-                    if (parseInt(confidenceSliderEl.value) > 0) {
-                         selectButtonEl.disabled = false;
-                    }
-                }, CONFIG.selectIncorrectPenalty); 
+                // NO deshabilitar botones aquí si la selección es incorrecta
+                // setActionButtonsDisabled(false) implícitamente ya que no se llamó a true
             }
         });
 
         confidenceSliderEl.addEventListener('input', (event) => { 
             const value = parseInt(event.target.value);
             if (confidenceValueDisplayEl) confidenceValueDisplayEl.textContent = value;
-            // Habilitar/deshabilitar selectButtonEl basado en el valor del slider,
-            // PERO solo si no está ya deshabilitado por una acción en curso (como una selección incorrecta con penalización activa)
-            if (selectButtonEl && !selectButtonEl.disabled) { // Si ya está deshabilitado, no lo toques
-                 setActionButtonsDisabled(false); // Esto re-evaluará
-            } else if (selectButtonEl && parseInt(confidenceSliderEl.value) > 0) {
-                // Si estaba deshabilitado (ej. por penalización) y ahora la confianza es válida,
-                // no lo habilitamos aquí, esperamos que el timeout de la penalización lo haga.
-                // Pero si no había penalización y solo estaba deshabilitado por confianza=0:
-                 if (!testButtonEl.disabled) { // Evitar interferir si testButton está en medio de algo (aunque no debería)
-                    selectButtonEl.disabled = false;
-                 }
-            } else if (selectButtonEl) {
-                selectButtonEl.disabled = true;
+            // Solo re-evaluar el estado del botón de selección. testButton no se ve afectado por esto.
+            if (selectButtonEl) {
+                selectButtonEl.disabled = (value === 0);
             }
         });
-
         showScreen('demographics');
         console.log("Mostrando pantalla de demográficos. Pantalla actual:", currentScreen);
         if (selectButtonEl) selectButtonEl.disabled = true;
