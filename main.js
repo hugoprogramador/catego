@@ -570,12 +570,12 @@ window.onload = () => {
                     console.log("Respuestas finales para enviar:", participantData.finalQuestions);
 
                     await saveDataToServer(); // Llama a la función para enviar al servidor
-                    showScreen('thankYouScreen'); // Muestra agradecimiento después de intentar enviar
+                    showScreen('thankYouScreenEl'); // Muestra agradecimiento después de intentar enviar
                 } catch (e) { 
                     console.error("Error en listener de finalQuestionsForm:", e); 
                     alert("Ocurrió un error al procesar las respuestas finales. Se intentará descargar una copia local.");
                     downloadDataAsCSV_LocalFallback(); // Fallback si hay error aquí
-                    showScreen('thankYouScreen'); // Igual muestra agradecimiento
+                    showScreen('thankYouScreenEl'); // Igual muestra agradecimiento
                 }
             });
         }
