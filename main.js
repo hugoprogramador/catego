@@ -283,7 +283,6 @@ function startNewTrial() {
     setActionButtonsDisabled(false); // Esto habilitará test y select (si confianza > 0)
     if (selectButtonEl) selectButtonEl.disabled = parseInt(confidenceSliderEl.value) === 0; // Asegurar estado correcto de select
 }
-}
 
 function renderGrid() { 
     if (!gridContainerEl) { console.error("gridContainerEl no encontrado."); return; }
