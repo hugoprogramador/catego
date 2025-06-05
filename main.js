@@ -278,6 +278,11 @@ function startNewTrial() {
     if (confidenceSliderEl) confidenceSliderEl.value = 0; 
     if (confidenceValueDisplayEl) confidenceValueDisplayEl.textContent = '0'; 
     if (selectButtonEl) selectButtonEl.disabled = true;
+
+    // Habilitar botones al final de la configuración del nuevo ensayo
+    setActionButtonsDisabled(false); // Esto habilitará test y select (si confianza > 0)
+    if (selectButtonEl) selectButtonEl.disabled = parseInt(confidenceSliderEl.value) === 0; // Asegurar estado correcto de select
+}
 }
 
 function renderGrid() { 
@@ -609,6 +614,13 @@ window.onload = () => {
         });
 
         selectButtonEl.addEventListener('click', () => { 
+            
+            if (selectButtonEl.disabled) { // Si el botón ya está deshabilitado, no hacer nada
+                return;
+            }
+            // Deshabilitar INMEDIATAMENTE para prevenir múltiples clics
+            setActionButtonsDisabled(true); // Esto deshabilita testButton también, lo cual está bien.
+
             const confidence = parseInt(confidenceSliderEl.value);
             if (confidence === 0) { showFeedback("Debes indicar tu nivel de confianza (1-5).", 'incorrect'); return; }
             if (!currentRule || typeof currentRule.getRelevantStimuli !== 'function') {
