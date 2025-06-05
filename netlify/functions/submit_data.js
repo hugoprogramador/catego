@@ -5,56 +5,45 @@ const fetch = require('node-fetch'); // Necesitarás instalar node-fetch si Netl
 // SCRIPT DE GOOGLE APPS DESPLEGADO
 const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzdwPqB-4sKvwOy-C29MR4n-Ip-Jc-Y5ZIO5Xg0iZ-CV6SqQ7-_JRqC2kpevRH_z_lM/exec';
 
-// Origen permitido. Para producción, usa tu URL específica de GitHub Pages.
-const ALLOWED_ORIGIN = 'https://hugoprogramador.github.io'; 
-// const ALLOWED_ORIGIN = '*'; // Para pruebas amplias, pero menos seguro
+const ALLOWED_ORIGIN = 'https://gleaming-sopapillas-db2bdc.netlify.app'; // Ahora este es tu origen
 
 exports.handler = async function(event, context) {
-    // Cabeceras CORS comunes
     const corsHeaders = {
-        'Access-Control-Allow-Origin': ALLOWED_ORIGIN,
-        'Access-Control-Allow-Methods': 'POST, OPTIONS', // OPTIONS es crucial para preflight
+        'Access-Control-Allow-Origin': ALLOWED_ORIGIN, // Sé específico con tu dominio Netlify
+        'Access-Control-Allow-Methods': 'POST, OPTIONS',
         'Access-Control-Allow-Headers': 'Content-Type',
     };
 
-    // Manejar la solicitud OPTIONS (preflight)
     if (event.httpMethod === 'OPTIONS') {
-        console.log("Respondiendo a solicitud OPTIONS (preflight)");
-        return {
-            statusCode: 204, // No Content - Estándar para preflight exitoso
-            headers: corsHeaders,
-            body: '' // El cuerpo no es necesario para OPTIONS
-        };
+        return { statusCode: 204, headers: corsHeaders, body: '' };
     }
 
-    // Procesar solo solicitudes POST
     if (event.httpMethod !== 'POST') {
-        console.log(`Método no permitido: ${event.httpMethod}`);
-        return {
-            statusCode: 405,
-            body: 'Method Not Allowed',
-            headers: { ...corsHeaders, 'Allow': 'POST, OPTIONS' } // Incluir Allow
-        };
+        return { statusCode: 405, body: 'Method Not Allowed', headers: { ...corsHeaders, 'Allow': 'POST, OPTIONS' }};
     }
-
-    // Si llegamos aquí, es una solicitud POST
+    // ... RESTO DE TU LÓGICA DE FUNCIÓN (parsear body, preparar datos para Google, fetch a Google, etc.)
+    // Asegúrate de incluir 'corsHeaders' en TODAS las respuestas de retorno.
+    // Ejemplo para una respuesta de éxito:
+    // return { statusCode: 200, body: JSON.stringify({ status: 'success', ... }), headers: corsHeaders };
+    // Ejemplo para una respuesta de error:
+    // return { statusCode: 500, body: JSON.stringify({ status: 'error', ... }), headers: corsHeaders };
+    // ... (el código completo que te di antes debería tener esto)
     try {
         const body = JSON.parse(event.body);
         const participantData = body.participantData;
 
         if (!participantData || !participantData.id) {
-            console.error("Datos POST incompletos o formato incorrecto.");
             return { 
                 statusCode: 400, 
                 body: JSON.stringify({ status: 'error', message: 'Datos incompletos o formato incorrecto.' }),
-                headers: corsHeaders // Añadir cabeceras CORS también a respuestas de error
+                headers: corsHeaders
             };
         }
 
         const participant_id = participantData.id || 'desconocido';
-        console.log(`Procesando POST para P${participant_id}`);
+        console.log(`Procesando POST para P${participant_id} desde origen ${event.headers.origin}`);
 
-        // ... (tu lógica para preparar dataForGoogleScript)
+
         const dataForGoogleScript = {
             participant_id: participantData.id,
             group: participantData.group,
@@ -67,7 +56,7 @@ exports.handler = async function(event, context) {
             mostFoundCategories: participantData.finalQuestions?.mostFoundCategories,
             difficultyOverall: participantData.finalQuestions?.difficultyOverall,
             strategy_used: participantData.finalQuestions?.strategy_used,
-            trials: participantData.trials
+            trials: participantData.trials 
         };
         
         console.log("Enviando a Google Script:", JSON.stringify(dataForGoogleScript).substring(0, 100) + "...");
@@ -89,14 +78,12 @@ exports.handler = async function(event, context) {
         } catch (parseError) {
             console.error("Error al parsear respuesta de Google Script:", parseError, "Respuesta cruda:", googleResultText);
             return {
-                statusCode: 502, // Bad Gateway (problema con el servidor upstream)
+                statusCode: 502, 
                 body: JSON.stringify({ status: 'error_google_script_parse', message: 'Respuesta no JSON de Google Script.', rawResponse: googleResultText.substring(0,500) }),
                 headers: corsHeaders
             };
         }
-
-        // Google Apps Script con ContentService.createTextOutput().setMimeType(ContentService.MimeType.JSON)
-        // debería devolver 200 OK. El redirect 302 es más común si no se configura el MimeType correctamente.
+        
         if (googleResponse.ok && googleResult.status === "success") {
              console.log("Datos enviados exitosamente a Google Sheets:", googleResult.message);
             return {
